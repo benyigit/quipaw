@@ -1,26 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useFavorites } from "@/components/favorites-provider";
 
 type PageName = "home" | "shop" | "blog" | "events";
 
 export function SiteHeader({ current = "home" }: { current?: PageName }) {
   const [open, setOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const { favoriteIds } = useFavorites();
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const closeMenu = () => setOpen(false);
+
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
 
   return <>
     <div className="announcement"><span className="announce-paw">🐾</span><span>Good treats. Happy tails. All day.</span><span className="announce-spark">✦</span></div>
     <header className="site-header" id="top">
       <Link className="brand-lockup" href="/" aria-label="Quipaw home"><img src="/assets/logo-quipaw.png" alt="Quipaw" /><span>DOG TREATS</span></Link>
-      <button className="menu-toggle" type="button" aria-expanded={open} aria-controls="main-nav" aria-label={open ? "Close menu" : "Open menu"} onClick={() => setOpen((value) => !value)}><span /><span /></button>
+      <button className="menu-toggle" type="button" aria-expanded={open} aria-controls="main-nav" aria-label={open ? "Close menu" : "Open menu"} onClick={() => { setOpen((value) => !value); setSearchOpen(false); }}><span /><span /></button>
       <nav id="main-nav" className={"main-nav " + (open ? "is-open" : "")} aria-label="Main navigation">
-        <Link href="/#products">The chews</Link>
-        <Link href="/shop" aria-current={current === "shop" ? "page" : undefined}>Shop</Link>
-        <Link href="/blog" aria-current={current === "blog" ? "page" : undefined}>The journal</Link>
-        <Link href="/events" aria-current={current === "events" ? "page" : undefined}>Good times</Link>
-        <Link href="/#contact">Say hello</Link>
+        <Link href="/#products" onClick={closeMenu}>The chews</Link>
+        <Link href="/shop" onClick={closeMenu} aria-current={current === "shop" ? "page" : undefined}>Shop</Link>
+        <Link href="/blog" onClick={closeMenu} aria-current={current === "blog" ? "page" : undefined}>The journal</Link>
+        <Link href="/events" onClick={closeMenu} aria-current={current === "events" ? "page" : undefined}>Good times</Link>
+        <Link href="/#contact" onClick={closeMenu}>Say hello</Link>
       </nav>
+      <div className="header-actions">
+        <form className={`search-box ${searchOpen ? "is-open" : ""}`} action="/shop" method="get" role="search" onSubmit={() => setSearchOpen(false)}>
+          <button className="search-toggle" type="button" aria-label={searchOpen ? "Close search" : "Open search"} aria-expanded={searchOpen} onClick={() => { setSearchOpen((value) => !value); setOpen(false); }}>⌕</button>
+          <input ref={searchInputRef} type="search" name="q" placeholder="Find a chew" aria-label="Search chews" />
+          <button className="search-submit" type="submit" aria-label="Search chews">⌕</button>
+        </form>
+        <Link className="favorite-counter" href="/shop?favorites=1" aria-label={`View favorites, ${favoriteIds.length} saved`}><span aria-hidden="true">♡</span><span className="favorite-count">{favoriteIds.length}</span><span className="favorite-label">Favorites</span></Link>
+      </div>
     </header>
   </>;
 }

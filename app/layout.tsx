@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { FavoritesProvider } from "@/components/favorites-provider";
 import "./globals.css";
 import "./refinements.css";
 
@@ -8,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body className="quipaw-site">{children}</body></html>;
+  return <html lang="en"><body className="quipaw-site"><FavoritesProvider>{children}</FavoritesProvider></body></html>;
 }

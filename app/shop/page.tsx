@@ -7,7 +7,13 @@ export const metadata: Metadata = {
   description: "Explore natural Quipaw chews for curious noses and happy dogs.",
 };
 
-export default function ShopPage() {
+export default async function ShopPage({ searchParams }: {
+  searchParams: Promise<{ q?: string | string[]; favorites?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const initialSearch = typeof params.q === "string" ? params.q : "";
+  const initialFavoritesOnly = params.favorites === "1";
+
   return <>
     <SiteHeader current="shop" />
     <main>
@@ -27,7 +33,7 @@ export default function ShopPage() {
           <div><p className="eyebrow">Pick their next favorite</p><h2 id="quipaw-products-title">Natural chews. <em>Real happy.</em></h2></div>
           <p>Search or filter by chew type, then tap a heart to save a favorite.</p>
         </div>
-        <ProductExplorer />
+        <ProductExplorer initialSearch={initialSearch} initialFavoritesOnly={initialFavoritesOnly} />
       </section>
     </main>
     <SiteFooter />
