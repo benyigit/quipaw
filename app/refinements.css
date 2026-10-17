@@ -73,3 +73,6 @@
 .footer-top{width:min(1140px,calc(100% - 72px));margin:0 auto 30px}
 @media(max-width:760px){.site-footer{padding-top:26px}.footer-top{width:min(560px,calc(100% - 40px));margin:0 auto 22px}}
 .quipaw-site{background-color:var(--cream);background-image:url('/assets/paw-dog-pattern.svg');background-repeat:repeat;background-size:112px 112px}
+.footer-support{display:flex;flex-direction:column;align-items:flex-start;gap:9px}
+.footer-support .footer-contact-link{display:inline-flex;align-items:center;gap:8px;line-height:1.35;overflow-wrap:anywhere}
+.footer-contact-link svg{width:16px;height:16px;flex:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;color:#9cdda5}
