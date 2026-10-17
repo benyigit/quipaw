@@ -72,3 +72,4 @@
 .quiz-restart{min-height:44px;margin-top:2px;padding-inline:18px;gap:9px;font-size:.8rem}
 .footer-top{width:min(1140px,calc(100% - 72px));margin:0 auto 30px}
 @media(max-width:760px){.site-footer{padding-top:26px}.footer-top{width:min(560px,calc(100% - 40px));margin:0 auto 22px}}
+.quipaw-site{background-color:var(--cream);background-image:url('/assets/paw-dog-pattern.svg');background-repeat:repeat;background-size:112px 112px}
