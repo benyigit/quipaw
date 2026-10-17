@@ -69,5 +69,6 @@
 @media(max-width:390px){.header-actions{gap:6px}.favorite-counter{min-width:42px;padding:0 7px}.favorite-counter .favorite-count{min-width:18px;height:18px}}
 
 .site-footer{padding-top:40px}
+.quiz-restart{min-height:44px;margin-top:2px;padding-inline:18px;gap:9px;font-size:.8rem}
 .footer-top{width:min(1140px,calc(100% - 72px));margin:0 auto 30px}
 @media(max-width:760px){.site-footer{padding-top:26px}.footer-top{width:min(560px,calc(100% - 40px));margin:0 auto 22px}}
