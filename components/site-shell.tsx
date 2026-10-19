@@ -50,7 +50,7 @@ export function SiteFooter() {
     </div>
     <div className="footer-main section-wrap">
       <div className="footer-brand"><Link href="/"><img src="/assets/logo-quipaw.png" alt="Quipaw logo" /></Link><span>DOG TREATS</span><p>Back to their nature. Forward to more happy tails.</p></div>
-      <div><h3>Take a sniff around</h3><Link href="/shop">Shop the chews</Link><Link href="/#products">Featured treats</Link><Link href="/blog">The journal</Link><Link href="/events">Good times</Link></div>
+      <div><h3>Take a sniff around</h3><Link href="/shop">Shop the chews</Link><Link href="/#products">Featured treats</Link><Link href="/#match">Paw passport</Link><Link href="/#happy-tails">Happy tails scrapbook</Link><Link href="/blog">The journal</Link><Link href="/events">Good times</Link></div>
       <div className="footer-support"><h3>Need a human?</h3><a className="footer-contact-link" href="tel:+18325550123"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M5 4h3l2 5-2 1.5a15 15 0 0 0 5.5 5.5L15 14l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z" /></svg><span>+1 (832) 555-0123</span></a><a className="footer-contact-link" href="mailto:support@quipaw.com"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m4 7 8 6 8-6" /></svg><span>support@quipaw.com</span></a><Link href="/#contact">Visit our contact page ↗</Link><a href="https://fgfpetfood.com">Visit FGF Pet Food Bazaar ↗</a></div>
       <div className="footer-paw">🐾<small>Good treats<br />happy tails</small><span>Made for their best days.</span></div>
     </div>
