@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import { PassportCard, downloadPassport, preparePortrait, passportThemes, passportBadges, passportAvatars, photoFramings } from "./passport-card";
 import Link from "next/link";
 import { products } from "@/data/products";
 import styles from "./paw-passport.module.css";
@@ -11,7 +11,7 @@ const moods = [
   { label: "The cosy chewer", detail: "Settle down. Paws up. Chew time.", icon: "♡", product: "bully-stick-6", color: "#ffd0b9" },
   { label: "The curious sniffer", detail: "A new texture to sniff and explore.", icon: "✿", product: "cow-ear", color: "#cde9dc" },
 ] as const;
-const avatars = ["🐶", "🐕", "🐩", "🦮"];
+const avatars = passportAvatars;
 const storageKey = "quipaw-paw-passport-v1";
 
 export function QuizFinder() {
@@ -20,6 +20,18 @@ export function QuizFinder() {
   const [mood, setMood] = useState(0);
   const [step, setStep] = useState(0);
   const [status, setStatus] = useState("");
+  const [theme, setTheme] = useState(0);
+  const [badge, setBadge] = useState(0);
+  const [note, setNote] = useState("");
+  const [photo, setPhoto] = useState("");
+  const [zoom, setZoom] = useState(1);
+  const [framing, setFraming] = useState(4);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+  const photoRequest = useRef(0);
+  const photoInput = useRef<HTMLInputElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const selected = moods[mood];
   const product = products.find((item) => item.id === selected.product)!;
@@ -30,6 +42,12 @@ export function QuizFinder() {
       const value = JSON.parse(localStorage.getItem(storageKey) || "null");
       if (value && typeof value.name === "string" && value.name.trim() && value.name.length <= 24 && Number.isInteger(value.mood) && value.mood >= 0 && value.mood < moods.length && Number.isInteger(value.avatar) && value.avatar >= 0 && value.avatar < avatars.length) {
         setName(value.name); setMood(value.mood); setAvatar(value.avatar); setStep(2);
+        if (Number.isInteger(value.theme) && value.theme >= 0 && value.theme < passportThemes.length) setTheme(value.theme);
+        if (Number.isInteger(value.badge) && value.badge >= 0 && value.badge < passportBadges.length) setBadge(value.badge);
+        if (typeof value.note === "string") setNote(value.note.slice(0, 40));
+        if (typeof value.photo === "string" && value.photo.length < 600000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(value.photo)) setPhoto(value.photo);
+        if (Number.isInteger(value.framing) && value.framing >= 0 && value.framing < photoFramings.length) setFraming(value.framing);
+        if (typeof value.zoom === "number" && value.zoom >= 1 && value.zoom <= 2) setZoom(value.zoom);
       }
     } catch { /* Works without browser storage, too. */ }
   }, []);
@@ -40,54 +58,62 @@ export function QuizFinder() {
   }
 
   function finish() {
-    try { localStorage.setItem(storageKey, JSON.stringify({ name: name.trim(), avatar, mood })); }
+    try { localStorage.setItem(storageKey, JSON.stringify({ name: name.trim(), avatar, mood, theme, badge, note: note.trim(), photo, zoom, framing })); }
     catch { setStatus("Your passport is ready. Download it to keep a copy."); }
     setStep(2);
     requestAnimationFrame(() => heading.current?.focus());
   }
 
-  function download() {
-    const canvas = document.createElement("canvas"); canvas.width = 1080; canvas.height = 1350;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) { setStatus("Your browser could not create the card. Please try another browser."); return; }
-    ctx.fillStyle = "#dff2e9"; ctx.fillRect(0, 0, 1080, 1350);
-    ctx.fillStyle = "#fffdf5"; ctx.beginPath(); ctx.roundRect(65, 65, 950, 1220, 46); ctx.fill();
-    ctx.textAlign = "center"; ctx.fillStyle = "#153851"; ctx.font = "bold 34px sans-serif"; ctx.fillText("QUIPAW  /  THE PAW PASSPORT", 540, 155);
-    ctx.fillStyle = selected.color; ctx.beginPath(); ctx.arc(540, 420, 175, 0, Math.PI * 2); ctx.fill();
-    ctx.font = "180px sans-serif"; ctx.fillText(avatars[avatar], 540, 480);
-    ctx.fillStyle = "#153851"; ctx.font = "bold 76px sans-serif";
-    let fontSize = 76;
-    while (ctx.measureText(displayName).width > 800 && fontSize > 28) { fontSize -= 2; ctx.font = `bold ${fontSize}px sans-serif`; }
-    ctx.fillText(displayName, 540, 710);
-    ctx.font = "italic 44px Georgia"; ctx.fillStyle = "#287b69"; ctx.fillText(selected.label, 540, 795);
-    ctx.font = "28px sans-serif"; ctx.fillText("CERTIFIED GOOD DOG ENERGY", 540, 900);
-    ctx.strokeStyle = "#b6d3c2"; ctx.setLineDash([8, 8]); ctx.beginPath(); ctx.moveTo(150, 980); ctx.lineTo(930, 980); ctx.stroke();
-    ctx.fillStyle = "#153851"; ctx.font = "bold 31px sans-serif"; ctx.fillText("A whole lot of personality. A little tail wag.", 540, 1070);
-    ctx.font = "26px sans-serif"; ctx.fillText("Made with love at quipaw.com", 540, 1170);
-    const link = document.createElement("a"); link.download = "quipaw-paw-passport.png"; link.href = canvas.toDataURL("image/png"); link.click();
-    setStatus("Your passport image is ready to save and share.");
+  async function download() {
+    if (!svgRef.current || exporting) return;
+    setExporting(true); setStatus("");
+    try { await downloadPassport(svgRef.current); setStatus("Your passport is ready — just like the card, with every little detail."); }
+    catch { setStatus("We couldn’t save the image. Please try downloading again."); }
+    finally { setExporting(false); }
+  }
+
+  async function uploadPhoto(file: File) {
+    const request = ++photoRequest.current;
+    setPhotoBusy(true); setPhotoError("");
+    try { const portrait = await preparePortrait(file); if (request === photoRequest.current) { setPhoto(portrait); setZoom(1); setFraming(4); } }
+    catch (error) { if (request === photoRequest.current) setPhotoError(error instanceof Error && error.message.startsWith("Choose") ? error.message : "We couldn’t read that photo. Please try another one."); }
+    finally { if (request === photoRequest.current) setPhotoBusy(false); if (photoInput.current) photoInput.current.value = ""; }
+  }
+
+  function clearPhoto() {
+    ++photoRequest.current; setPhoto(""); setZoom(1); setFraming(4); setPhotoBusy(false); setPhotoError("");
+    if (photoInput.current) photoInput.current.value = "";
   }
 
   return <section id="match" className={`${styles.section} section-wrap`} aria-labelledby="passport-title">
     <div className={styles.intro}><p className="eyebrow">A little passport. A big personality.</p><h2 id="passport-title">Officially a<br /><em>very good dog.</em></h2><p>A name, a little personality, a keepsake made just for them. Let’s meet your favourite tail-wagger.</p><span className={styles.note}>✦ No account needed. All good dogs welcome.</span></div>
     <div className={styles.experience}>
-      <div className={styles.card} style={{ "--passport-color": selected.color } as CSSProperties}>
-        <div className={styles.cardTop}><strong>Quipaw.</strong><span>PAW PASSPORT</span></div>
-        <div className={styles.portrait} aria-hidden="true">{avatars[avatar]}<span>GOOD<br />DOG</span></div>
-        <h3>{displayName}</h3><p>{selected.label}</p>
-        <div className={styles.stamp}><span aria-hidden="true">{selected.icon}</span><span>Member of the<br /><strong>happy tails club</strong></span></div>
-        <div className={styles.cardBottom}>100% personality <span aria-hidden="true">✦</span> Endless tail wags</div>
+      <div className={styles.cardPreview}>
+        <PassportCard svgRef={svgRef} name={name} avatar={avatar} mood={selected.label} icon={selected.icon} theme={theme} badge={badge} note={note} photo={photo} zoom={zoom} framing={framing} />
       </div>
       <div className={styles.formPanel}>
         <div className={styles.steps} aria-label={`Step ${step + 1} of 3`}><span className={step >= 0 ? styles.active : ""}>01 · Meet</span><span className={step >= 1 ? styles.active : ""}>02 · Match</span><span className={step >= 2 ? styles.active : ""}>03 · Keep</span></div>
         <h3 ref={heading} tabIndex={-1}>{step === 0 ? "Who’s the very good dog?" : step === 1 ? "What’s their chew mood?" : `${displayName}, you’re in!`}</h3>
         {step === 0 && <form onSubmit={(event) => { event.preventDefault(); if (name.trim()) goTo(1); }}>
           <label className={styles.label} htmlFor="passport-name">Their name<input id="passport-name" value={name} maxLength={24} required pattern={".*\\S.*"} onChange={(event) => setName(event.target.value)} placeholder="e.g. Charlie" autoComplete="off" /></label>
-          <fieldset className={styles.avatars}><legend>Pick their portrait</legend>{avatars.map((item, index) => <button type="button" key={item} aria-label={`Dog portrait ${index + 1}`} aria-pressed={avatar === index} onClick={() => setAvatar(index)}>{item}</button>)}</fieldset>
-          <button type="submit" className="button button-dark">Find their personality <span aria-hidden="true">→</span></button>
+          <fieldset className={styles.avatars}><legend>Pick their portrait</legend>{avatars.map((item, index) => <button type="button" key={item} aria-label={`Dog portrait ${index + 1}`} aria-pressed={!photo && avatar === index} onClick={() => { clearPhoto(); setAvatar(index); }}>{item}</button>)}</fieldset>
+          <div className={styles.photoTools}>
+            <label className={styles.uploadLabel}>Or use their own photo<input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadPhoto(file); }} /></label>
+            <small>JPG, PNG or WebP · up to 8 MB · stays on this device</small>
+            {photoBusy && <small role="status">Preparing their portrait…</small>}
+            {photoError && <p className={styles.photoError} role="alert">{photoError}</p>}
+            {photo && <><label className={styles.framingLabel}>Photo position<select aria-label="Photo position" value={framing} onChange={(event) => setFraming(Number(event.target.value))}>{photoFramings.map((item, index) => <option key={item.value} value={index}>{item.label}</option>)}</select></label><label className={styles.zoomLabel}>Photo zoom<input type="range" min="1" max="2" step=".05" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} /></label><button className={styles.textButton} type="button" onClick={clearPhoto}>Remove photo</button></>}
+          </div>
+          <details className={styles.customize}>
+            <summary>Make it more them <span aria-hidden="true">✦</span></summary>
+            <fieldset className={styles.colors}><legend>Pick a colour</legend>{passportThemes.map((item, index) => <button key={item.id} type="button" aria-pressed={theme === index} aria-label={item.name} onClick={() => setTheme(index)}><span style={{ background: item.portrait }} aria-hidden="true" /><small>{item.name}</small></button>)}</fieldset>
+            <label className={styles.label}>Their little badge<select aria-label="Their little badge" value={badge} onChange={(event) => setBadge(Number(event.target.value))}>{passportBadges.map((item, index) => <option value={index} key={item}>{item.toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase())}</option>)}</select></label>
+            <label className={styles.label}>A personal note <span className={styles.optional}>Optional · {note.length}/40</span><input maxLength={40} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Chief snack inspector" /></label>
+          </details>
+          <button type="submit" disabled={photoBusy} className="button button-dark">Find their personality <span aria-hidden="true">→</span></button>
         </form>}
         {step === 1 && <><fieldset className={styles.moods}><legend className="sr-only">Choose a chew mood</legend>{moods.map((item, index) => <label key={item.label}><input type="radio" name="paw-mood" checked={mood === index} onChange={() => setMood(index)} /><span className={styles.moodIcon} aria-hidden="true">{item.icon}</span><span><strong>{item.label}</strong><small>{item.detail}</small></span></label>)}</fieldset><div className={styles.actions}><button className="button button-dark" onClick={finish}>Make their passport <span aria-hidden="true">✦</span></button><button className={styles.textButton} onClick={() => goTo(0)}>Back</button></div></>}
-        {step === 2 && <><p className={styles.resultCopy}>One little keepsake for a very big part of your life.</p><Link href={`/shop?q=${encodeURIComponent(product.name)}`} className={styles.matchProduct}><img src={`/assets/products/${product.image}`} alt={product.name} /><span><small>A texture to explore</small><strong>{product.name}</strong><span>Meet the chew →</span></span></Link><small className={styles.careNote}>A playful starting point. Check ingredients and choose a size suited to your dog. Always supervise chew time.</small><div className={styles.actions}><button className="button button-dark" onClick={download}>Download passport <span aria-hidden="true">↓</span></button><button className={styles.textButton} onClick={() => goTo(0)}>Edit details</button></div><button className={styles.textButton} onClick={() => { try { localStorage.removeItem(storageKey); } catch {} setName(""); setAvatar(0); setMood(0); goTo(0); }}>Start fresh</button></>}
+        {step === 2 && <><p className={styles.resultCopy}>One little keepsake for a very big part of your life.</p><Link href={`/shop?q=${encodeURIComponent(product.name)}`} className={styles.matchProduct}><img src={`/assets/products/${product.image}`} alt={product.name} /><span><small>A texture to explore</small><strong>{product.name}</strong><span>Meet the chew →</span></span></Link><small className={styles.careNote}>A playful starting point. Check ingredients and choose a size suited to your dog. Always supervise chew time.</small><div className={styles.actions}><button className="button button-dark" disabled={exporting} onClick={download}>{exporting ? "Preparing your card…" : "Download passport"} <span aria-hidden="true">↓</span></button><button className={styles.textButton} onClick={() => goTo(0)}>Edit details</button></div><button className={styles.textButton} onClick={() => { try { localStorage.removeItem(storageKey); } catch {} setName(""); setAvatar(0); setMood(0); setTheme(0); setBadge(0); setNote(""); clearPhoto(); goTo(0); }}>Start fresh</button></>}
         <p className={styles.status} role="status">{status}</p>
       </div>
     </div>
