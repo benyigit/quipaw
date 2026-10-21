@@ -23,3 +23,5 @@
 .sharedNotice p{color:#58746b;font-size:13px;line-height:1.65;margin:9px 0 16px}
 .sharedNotice :global(.button){font-size:12px}
 @media(max-width:600px){.sharedNotice{padding:19px;gap:12px}.sharedNotice>span{font-size:30px}.sharedNotice :global(.button){padding-inline:17px}}
+
+.sharingChoices .visibilityNote{padding:11px 13px;margin:4px 0 0;border-radius:11px;background:#eef4e8;font-weight:700;font-size:11px;line-height:1.65;color:#386c55}

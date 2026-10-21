@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-export type CommunityPhoto = { id: string; dog_name: string; caption: string };
+export type CommunityPhoto = { id: string; dog_name: string; title: string; category: string; caption: string };
 
 export function useCommunityPhotos() {
   const [photos, setPhotos] = useState<CommunityPhoto[]>([]);

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { CommunityComposer } from "./community-composer";
 import { useCommunityPhotos } from "./use-community-photos";
 import { BrandVideos } from "./brand-videos";
 import { useLanguage } from "@/components/language-provider";
@@ -42,11 +43,13 @@ const moments = [{
 function MomentDialog({
   brand,
   story,
-  onClose
+  onClose,
+  onShare
 }: {
   brand: Brand;
   story: Moment;
   onClose: () => void;
+  onShare: () => void;
 }) {
   const {
     t
@@ -77,22 +80,23 @@ function MomentDialog({
         <h3 id="tail-dialog-title">{story.community ? story.title : t(story.title)}</h3>
         <p>{story.community ? story.note : t(story.note)}</p>
         {story.community && <p className={styles.permissionNote}>{t("Shared with their human’s permission.")}</p>}
-        <Link className="button button-dark" href={story.community ? "/account#share-moment" : brand === "quipaw" ? "/blog" : "/#journal"} onClick={onClose}>{t(story.community ? "Share your own happy moment" : "Explore the journal")} <span aria-hidden="true">→</span></Link>
+        {story.community ? <button type="button" className="button button-dark" onClick={onShare}>{t("Share your own happy moment")} <span aria-hidden="true">→</span></button> : <Link className="button button-dark" href="/blog" onClick={onClose}>{t("Explore the journal")} <span aria-hidden="true">→</span></Link>}
       </div>
     </div>
   </dialog>;
 }
 export function HappyTails({ brand }: { brand: Brand }) {
   const { t } = useLanguage();
+  const [composing, setComposing] = useState(false);
   const [filter, setFilter] = useState("all");
   const [openId, setOpenId] = useState<string | null>(null);
   const { photos, loading, failed, refresh } = useCommunityPhotos();
   const stories: Moment[] = [
     ...photos.map(photo => ({
       id: photo.id,
-      title: photo.dog_name,
-      tag: "Community moments",
-      category: "community",
+      title: photo.title || photo.dog_name,
+      tag: ({ cosy: "Cosy moments", outdoors: "Outdoor days", funny: "Funny moments" } as Record<string, string>)[photo.category] || "Community moments",
+      category: photo.category || "community",
       image: `/api/community/photos/${photo.id}`,
       alt: photo.caption || photo.dog_name,
       note: photo.caption,
@@ -102,16 +106,16 @@ export function HappyTails({ brand }: { brand: Brand }) {
       ...moment, id: `brand-${index}`, image: `/assets/stories/${moment.image}`, community: false
     }))
   ];
-  const visible = stories.filter(story => filter === "all" || story.category === filter);
+  const visible = stories.filter(story => filter === "all" || (filter === "community" ? story.community : story.category === filter));
   const openStory = stories.find(story => story.id === openId);
 
   return <section id="happy-tails" className={`${styles.section} section-wrap ${brand === "fgf" ? styles.fgf : ""}`} aria-labelledby="tails-title">
     <div className={styles.header}>
       <div><p className="eyebrow">{t("The happy tails scrapbook")}</p><h2 id="tails-title">{t("Little moments.")}<br /><em>{t("Truly happy dogs.")}</em></h2></div>
-      <div className={styles.invite}><span aria-hidden="true">♡</span><p>{t("Little stories from our pack, and yours.")}<br />{t("The next page could be your dog’s.")}</p><Link className="button button-dark" href="/account#share-moment">{t("Share their happy moment ")}<span aria-hidden="true">↗</span></Link></div>
+      <div className={styles.invite}><span aria-hidden="true">♡</span><p>{t("Little stories from our pack, and yours.")}<br />{t("The next page could be your dog’s.")}</p><button type="button" className="button button-dark" onClick={() => setComposing(true)}>{t("Share their happy moment ")}<span aria-hidden="true">＋</span></button></div>
     </div>
     <div className={styles.filters} role="group" aria-label={t("Filter happy moments")}>
-      {[["all", "All the good times"], ["cosy", "Cosy moments"], ["outdoors", "Outdoor days"], ["community", "Community moments"]].map(([value, label]) => <button key={value} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)}>{t(label)}</button>)}
+      {[["all", "All the good times"], ["cosy", "Cosy moments"], ["outdoors", "Outdoor days"], ["funny", "Funny moments"], ["community", "Community moments"]].map(([value, label]) => <button key={value} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)}>{t(label)}</button>)}
       <span>{t("Made of little tail wags ✦")}</span>
     </div>
     <div className={styles.grid} aria-busy={loading}>
@@ -123,13 +127,14 @@ export function HappyTails({ brand }: { brand: Brand }) {
         <span className={styles.signature}>{moment.community ? t("A little moment from our community") : `${t("From the ")}${brand === "quipaw" ? "Quipaw" : "FGF"}${t(" scrapbook ")}`}<span aria-hidden="true">♡</span></span>
       </button>)}
     </div>
-    {filter === "community" && !photos.length && <div className={styles.emptyState} role="status">
+    {!visible.length && <div className={styles.emptyState} role="status">
       <span aria-hidden="true">♡</span>
       <h3>{t(loading ? "Fetching a little happiness…" : failed ? "A little pause in the scrapbook." : "Their moment could be the first.")}</h3>
-      {!loading && <><p>{t(failed ? "We couldn’t load the community photos. Please try again." : "Add a favourite photo and choose to share it on our website. It will appear right here.")}</p>{failed ? <button type="button" className="button button-dark" onClick={() => void refresh()}>{t("Try again")} <span aria-hidden="true">↻</span></button> : <Link className="button button-dark" href="/account#share-moment">{t("Share their happy moment ")}<span aria-hidden="true">↗</span></Link>}</>}
+      {!loading && <><p>{t(failed ? "We couldn’t load the community photos. Please try again." : "Add a favourite photo and choose to share it on our website. It will appear right here.")}</p>{failed ? <button type="button" className="button button-dark" onClick={() => void refresh()}>{t("Try again")} <span aria-hidden="true">↻</span></button> : <button type="button" className="button button-dark" onClick={() => setComposing(true)}>{t("Share their happy moment ")}<span aria-hidden="true">＋</span></button>}</>}
     </div>}
-    <div className={styles.bottom}><span aria-hidden="true">✷</span><p>{t("Every happy tail has a story. ")}<strong>{t("We’d love to hear yours.")}</strong></p><Link href="/account#share-moment">{t("Meet the next good dog →")}</Link></div>
+    <div className={styles.bottom}><span aria-hidden="true">✷</span><p>{t("Every happy tail has a story. ")}<strong>{t("We’d love to hear yours.")}</strong></p><button type="button" onClick={() => setComposing(true)}>{t("Share a little happiness →")}</button></div>
     <BrandVideos />
-    {openStory && <MomentDialog brand={brand} story={openStory} onClose={() => setOpenId(null)} />}
+    {composing && <CommunityComposer brand={brand} onClose={() => setComposing(false)} onSaved={() => { setFilter("all"); void refresh(); }} />}
+    {openStory && <MomentDialog brand={brand} story={openStory} onClose={() => setOpenId(null)} onShare={() => { setOpenId(null); setComposing(true); }} />}
   </section>;
 }

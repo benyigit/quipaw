@@ -37,8 +37,8 @@ export function SiteHeader({
         <Link href="/shop" onClick={closeMenu}>{t("Products")}</Link>
         <Link href="/shop" onClick={closeMenu} aria-current={current === "shop" ? "page" : undefined}>{t("Shop")}</Link>
         <Link href="/blog" onClick={closeMenu} aria-current={current === "blog" ? "page" : undefined}>{t("Blog")}</Link>
-        <Link href="/events" onClick={closeMenu} aria-current={current === "events" ? "page" : undefined}>{t("Good times")}</Link>
-        <Link href="/#contact" onClick={closeMenu}>{t("Say hello")}</Link>
+        <Link href="/events" onClick={closeMenu} aria-current={current === "events" ? "page" : undefined}>{t("Events")}</Link>
+        <Link href="/#contact" onClick={closeMenu}>{t("Contact")}</Link>
       </nav>
       <div className="header-actions"><MemberTools />
         <form className={`search-box ${searchOpen ? "is-open" : ""}`} action="/shop" method="get" role="search" onSubmit={() => setSearchOpen(false)}>
@@ -66,8 +66,8 @@ export function SiteFooter() {
       <span className="footer-top-decor" aria-hidden="true">✿　♡　✦</span>
     </div>
     <div className="footer-main section-wrap">
-      <div className="footer-brand"><Link href="/"><img src="/assets/logo-quipaw.png" alt={t("Quipaw logo")} /></Link><span>{t("DOG TREATS")}</span><p>{t("Back to their nature. Forward to more happy tails.")}</p></div>
-      <div><h3>{t("Take a sniff around")}</h3><Link href="/shop">{t("Shop the chews")}</Link><Link href="/#products">{t("Featured treats")}</Link><Link href="/#happy-tails">{t("Happy tails scrapbook")}</Link><Link href="/blog">{t("Blog")}</Link><Link href="/events">{t("Good times")}</Link><Link href="/#match">{t("Paw passport")}</Link></div>
+      <div className="footer-brand"><Link href="/"><img src="/assets/logo-quipaw.png" alt={t("Quipaw logo")} /></Link><span>{t("DOG TREATS")}</span><p>{t("Quipaw is a registered trademark of FGF Pet Food Bazaar LLC. Our natural dog treats include beef, lamb, chicken and collagen chews, with a range of textures and sizes for everyday treat time.")}</p></div>
+      <div><h3>{t("Take a sniff around")}</h3><Link href="/shop">{t("Shop the chews")}</Link><Link href="/#products">{t("Featured treats")}</Link><Link href="/#happy-tails">{t("Happy tails scrapbook")}</Link><Link href="/blog">{t("Blog")}</Link><Link href="/events">{t("Events")}</Link><Link href="/#match">{t("Paw passport")}</Link></div>
       <div className="footer-support"><h3>{t("Need a human?")}</h3><a className="footer-contact-link" href="tel:+12813010010"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M5 4h3l2 5-2 1.5a15 15 0 0 0 5.5 5.5L15 14l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z" /></svg><span>281-301-0010</span></a><a className="footer-contact-link" href="mailto:support@quipaw.com"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m4 7 8 6 8-6" /></svg><span>{t("support@quipaw.com")}</span></a><Link href="/#contact">{t("Visit our contact page ↗")}</Link><a href="https://fgfpetfood.com">{t("Visit FGF Pet Food Bazaar ↗")}</a></div>
       <div className="footer-paw">🐾<small>{t("Good treats")}<br />{t("happy tails")}</small><span>{t("Made for their best days.")}</span></div>
     </div>
