@@ -13,3 +13,13 @@
 @media(max-width:650px){.permissionChoice{padding:14px}.photoGrid:has(.permissionBox){grid-template-columns:1fr}.permissionIcon{display:none}.sharingChoices legend{font-size:16px}}
 
 .accountReference{display:block;font-size:10px;color:#5b736b;margin:18px 0;line-height:1.7}.accountReference code{display:block;overflow-wrap:anywhere;user-select:all}
+
+.backToMoments{display:inline-flex;align-items:center;gap:9px;margin-bottom:26px;color:#2b806e;font-size:13px;font-weight:800;text-decoration:none}
+.backToMoments:focus-visible{outline:2px solid #2b806e;outline-offset:6px;border-radius:4px}
+.uploadCard{scroll-margin-top:115px}
+.sharedNotice{display:flex;align-items:flex-start;gap:17px;margin-top:26px;padding:24px;border:1px solid #cbdcc9;border-radius:20px;background:#e9f4e8;color:#15394a}
+.sharedNotice>span{color:#dd8663;font-size:38px;line-height:1}
+.sharedNotice strong{font-family:Georgia,serif;font-weight:500;font-style:italic;font-size:1.45rem;line-height:1.2}
+.sharedNotice p{color:#58746b;font-size:13px;line-height:1.65;margin:9px 0 16px}
+.sharedNotice :global(.button){font-size:12px}
+@media(max-width:600px){.sharedNotice{padding:19px;gap:12px}.sharedNotice>span{font-size:30px}.sharedNotice :global(.button){padding-inline:17px}}

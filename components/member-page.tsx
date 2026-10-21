@@ -50,6 +50,7 @@ export function MemberPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
+  const [lastShared, setLastShared] = useState(false);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [dogName, setDogName] = useState('');
   const [breed, setBreed] = useState('');
@@ -69,6 +70,11 @@ export function MemberPage() {
       preventScroll: true
     });
   }, [error, status]);
+  useEffect(() => {
+    if (member && !loading && window.location.hash === '#share-moment') {
+      document.getElementById('share-moment')?.scrollIntoView({ block: 'start' });
+    }
+  }, [member, loading]);
   async function reloadPhotos() {
     const data = await api('/api/community/photos');
     setPhotos(data.photos);
@@ -131,6 +137,7 @@ export function MemberPage() {
         method: 'DELETE'
       });
       setMember(null);
+      setLastShared(false);
       setPhotos([]);
       setFile(null);
       setCaption('');
@@ -185,6 +192,7 @@ export function MemberPage() {
         body: data
       });
       await reloadPhotos();
+      setLastShared(consent);
       setFile(null);
       setCaption('');
       setConsent(false);
@@ -215,6 +223,7 @@ export function MemberPage() {
       });
       await reloadPhotos();
       setShareId(null);
+      setLastShared(false);
       setShareConsent(false);
       setStatus('Your website and social media permissions have been updated.');
       announce();
@@ -233,6 +242,7 @@ export function MemberPage() {
       });
       await reloadPhotos();
       setDeleteId(null);
+      setLastShared(false);
       setStatus('Photo deleted.');
       announce();
     } catch (e) {
@@ -242,6 +252,7 @@ export function MemberPage() {
     }
   }
   return <><SiteHeader /><main className={`${s.page} section-wrap`}>
+ <Link className={s.backToMoments} href="/#happy-tails"><span aria-hidden="true">←</span> {t("Back to happy moments")}</Link>
  {loading ? <p role="status">{'Getting your little corner ready…'}</p> : !available ? <section className={s.comingSoon}><span className={s.bigPaw} aria-hidden="true">🐾</span><p className="eyebrow">{"The happy tails club"}</p><h1>{"A little corner."}<br /><em>{"Coming soon."}</em></h1><p>{"We’re getting a home ready for your dog’s happiest moments. Community accounts and photo sharing will open soon."}</p><Link className="button button-dark" href="/#happy-tails">{"Explore happy tails"} <span aria-hidden="true">↗</span></Link></section> : !member ? <div className={s.authLayout}>
   <div className={s.welcome}><span className={s.sticker}>GOOD<br />DOG CLUB</span><p className="eyebrow">{'A little place for your best friend'}</p><h1>{'Their story.'}<br /><em>{'Your little corner.'}</em></h1><p>{'Keep their photos, tell their story and choose which moments you’d like to share with our happy tails community.'}</p><img src="/assets/catalog/cow-ear/lifestyle-ai.webp" alt={'A gentle Cavalier beside a natural chew'} /><span className={s.welcomeNote}>{'Your photos. Your permission. Always.'}</span></div>
   <div className={s.authCard}><div className={s.tabs}><button aria-pressed={mode === 'login'} onClick={() => {
@@ -257,7 +268,7 @@ export function MemberPage() {
               }}>{'Create account →'}</button></p>}
   {mode === 'register' && <label>{'Your name'}<input name="name" autoComplete="name" required maxLength={60} /></label>}<label>{'Email address'}<input type="email" name="email" autoComplete="email" required maxLength={254} /></label><label>{'Password'}<input type="password" name="password" minLength={10} maxLength={128} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} required /><small>{'At least 10 characters.'}</small></label><button disabled={busy} className="button button-dark">{busy ? 'One little moment…' : mode === 'login' ? 'Sign in →' : 'Create my account →'}</button><p className={s.hint}>{'Your account details stay private. Photo sharing is optional and can be withdrawn at any time.'}</p></form></div></div> : <><div className={s.dashboardHeading}><div><p className="eyebrow">{'Your happy tails club'}</p><h1>{'Hello,'} <em>{member.name}.</em></h1><p>{'A little home for their happiest moments.'}</p></div><button className={s.outlineButton} onClick={logout} disabled={busy}>{'Sign out'} ↗</button></div>
  <div className={s.dashboard}><aside className={s.profile}><span className={s.bigPaw}>🐾</span><h2>{dogName || 'Your good dog'}</h2><form className={s.form} onSubmit={saveProfile}><label>{'Their name'}<input value={dogName} onChange={e => setDogName(e.target.value)} maxLength={40} placeholder="Charlie" /></label><label>{'Breed / a lovely mix'}<input value={breed} onChange={e => setBreed(e.target.value)} maxLength={60} placeholder={'Tell us a little about them'} /></label><button disabled={busy} className={s.outlineButton}>{'Save their profile'}</button></form><p className={s.hint}>{'Only the dog’s name and the caption appear with a shared photo. Your email and account name are never shown in the gallery.'}</p><small className={s.accountReference}>Account reference: <code>{member.id}</code></small><Link href="/#happy-tails">{'Visit the public gallery →'}</Link>{member.role === 'moderator' && <Link className={s.teamLink} href="/account/community">Manage community permissions →</Link>}</aside>
- <section className={s.uploadCard}><p className="eyebrow">{'Make a little memory'}</p><h2>{'That tail-wagging'} <em>{'moment.'}</em></h2><form className={s.form} onSubmit={upload}><label className={s.upload}>{preview ? <img src={preview} alt={'Your selected photo'} /> : <span><b>＋</b>{'Choose their photo'}<small>JPG · PNG · WebP · 8 MB</small></span>}<input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" required onChange={e => {
+ <section id="share-moment" className={s.uploadCard}><p className="eyebrow">{'Make a little memory'}</p><h2>{'That tail-wagging'} <em>{'moment.'}</em></h2><form className={s.form} onSubmit={upload}><label className={s.upload}>{preview ? <img src={preview} alt={'Your selected photo'} /> : <span><b>＋</b>{'Choose their photo'}<small>JPG · PNG · WebP · 8 MB</small></span>}<input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" required onChange={e => {
                   const f = e.target.files?.[0];
                   if (!f) return;
                   if (f.size > 8 * 1024 * 1024 || !['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) {
@@ -268,7 +279,7 @@ export function MemberPage() {
                   }
                   setError('');
                   setFile(f);
-                }} /></label><label>{'Their name'}<input value={dogName} onChange={e => setDogName(e.target.value)} required maxLength={40} /></label><label>{'A little story'}<textarea value={caption} onChange={e => setCaption(e.target.value)} maxLength={240} rows={3} required placeholder={'What made their tail wag today?'} /></label><SharingChoices website={consent} social={socialConsent} onWebsite={setConsent} onSocial={setSocialConsent} disabled={busy} /><button className="button button-dark" disabled={busy || !file}>{busy ? 'Saving…' : consent || socialConsent ? 'Save with my permissions →' : 'Save privately →'}</button></form></section></div>
+                }} /></label><label>{'Their name'}<input value={dogName} onChange={e => setDogName(e.target.value)} required maxLength={40} /></label><label>{'A little story'}<textarea value={caption} onChange={e => setCaption(e.target.value)} maxLength={240} rows={3} required placeholder={'What made their tail wag today?'} /></label><SharingChoices website={consent} social={socialConsent} onWebsite={setConsent} onSocial={setSocialConsent} disabled={busy} /><button className="button button-dark" disabled={busy || !file}>{busy ? 'Saving…' : consent || socialConsent ? 'Save with my permissions →' : 'Save privately →'}</button></form>{lastShared && <div className={s.sharedNotice} role="status"><span aria-hidden="true">♡</span><div><strong>{t("A new page in our scrapbook.")}</strong><p>{t("Their happy moment is now part of the community.")}</p><Link className="button button-dark" href="/#happy-tails">{t("See it in the scrapbook")} <span aria-hidden="true">↗</span></Link></div></div>}</section></div>
  <section className={s.album}><div><p className="eyebrow">{'Your little collection'}</p><h2>{'Their photo'} <em>{'album.'}</em></h2><p>{'Control website and social media sharing separately for every photo.'}</p></div>{photos.length ? <div className={s.photoGrid}>{photos.map(photo => <article key={photo.id}><img src={`/api/community/photos/${photo.id}`} alt={photo.caption} loading="lazy" /><div className={s.photoBody}><div className={s.badges}><span className={photo.consent && !photo.hidden ? s.publicBadge : s.privateBadge}>{photo.hidden && photo.consent ? 'Gallery · hidden by team' : photo.consent ? 'Website · shared' : 'Website · private'}</span><span className={photo.social_consent ? s.socialBadge : s.privateBadge}>{photo.social_consent ? 'Social · permission given' : 'Social · no permission'}</span></div><h3>{photo.dog_name}</h3><p>{photo.caption}</p><div className={s.photoActions}><button disabled={busy} onClick={() => {
                     setShareId(photo.id);
                     setShareConsent(Boolean(photo.consent));
