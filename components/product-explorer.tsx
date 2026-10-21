@@ -1,53 +1,50 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { products } from "@/data/products";
-import { useFavorites } from "@/components/favorites-provider";
-
-type Product = (typeof products)[number];
-
-function ProductDialog({ product, isSaved, onClose, onSave }: {
-  product: Product;
-  isSaved: boolean;
-  onClose: () => void;
-  onSave: () => void;
-}) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    dialog.showModal();
-    return () => {
-      if (dialog.open) dialog.close();
-    };
-  }, []);
-
-  return <dialog ref={dialogRef} className="site-dialog" aria-labelledby="quipaw-product-title" onCancel={(event) => { event.preventDefault(); onClose(); }} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <button className="dialog-close" type="button" onClick={onClose} aria-label="Close">×</button>
-    <div className="dialog-product"><img src={`/assets/products/${product.image}`} alt={product.name} /><div><span className="product-kind">{product.kind} · Quipaw</span><h2 id="quipaw-product-title">{product.name}</h2><p>{product.description}</p><p>Offer chews with supervision, fresh water and a size that suits your dog.</p><button className="button button-dark" type="button" aria-pressed={isSaved} onClick={onSave}>{isSaved ? "♥ Saved to favorites" : "♡ Save this favorite"}</button></div></div>
-  </dialog>;
-}
-
-export function ProductExplorer({ initialSearch = "", initialFavoritesOnly = false }: {
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
+import { useLanguage } from './language-provider';
+import { useFavorites } from './favorites-provider';
+import { localCatalog, money, type CatalogProduct } from '@/lib/catalog';
+export function ProductExplorer({
+  initialSearch = '',
+  initialFavoritesOnly = false
+}: {
   initialSearch?: string;
   initialFavoritesOnly?: boolean;
 }) {
-  const [filter, setFilter] = useState("all");
+  const {
+    t,
+    language
+  } = useLanguage();
+  const [catalog, setCatalog] = useState<CatalogProduct[]>(localCatalog);
+  const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState(initialSearch);
   const [favoritesOnly, setFavoritesOnly] = useState(initialFavoritesOnly);
-  const [selected, setSelected] = useState<(typeof products)[number] | null>(null);
-  const { favoriteIds, toggleFavorite } = useFavorites();
-  const visible = useMemo(() => products.filter((p) => (filter === "all" || p.group === filter) && (!favoritesOnly || favoriteIds.includes(p.id)) && `${p.name} ${p.kind} ${p.description}`.toLowerCase().includes(search.toLowerCase())), [favoriteIds, favoritesOnly, filter, search]);
-
+  const [error, setError] = useState(false);
+  const {
+    favoriteIds,
+    toggleFavorite
+  } = useFavorites();
+  useEffect(() => {
+    const ac = new AbortController();
+    fetch('/api/storefront', {
+      signal: ac.signal
+    }).then(r => {
+      if (!r.ok) throw Error();
+      return r.json();
+    }).then(d => setCatalog(d.products)).catch(e => {
+      if (e.name !== 'AbortError') setError(true);
+    });
+    return () => ac.abort();
+  }, []);
   useEffect(() => setSearch(initialSearch), [initialSearch]);
   useEffect(() => setFavoritesOnly(initialFavoritesOnly), [initialFavoritesOnly]);
-
-  return <>
-    <div className="filter-row" role="group" aria-label="Filter Quipaw treats">{[["all", "All the chews"], ["beef", "Beef"], ["poultry", "Poultry"], ["lamb", "Lamb"], ["collagen", "Collagen"]].map(([key, label]) => <button type="button" key={key} className={`filter-chip ${filter === key && !favoritesOnly ? "is-active" : ""}`} onClick={() => { setFilter(key); setFavoritesOnly(false); }}>{label}</button>)}<button type="button" className={`filter-chip favorites-chip ${favoritesOnly ? "is-active" : ""}`} aria-pressed={favoritesOnly} onClick={() => setFavoritesOnly((value) => !value)}>♡ Favorites ({favoriteIds.length})</button><label className="quipaw-product-search"><span aria-hidden="true">⌕</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find a chew" aria-label="Search Quipaw treats" /></label></div>
-    <div className="product-grid" aria-live="polite">{visible.map((p) => { const isSaved = favoriteIds.includes(p.id); return <article className="product-card" key={p.id}><div className="product-image-wrap"><img src={`/assets/products/${p.image}`} alt={`Quipaw ${p.name}`} loading="lazy" /><span className="product-sticker">{p.kind}</span><button type="button" className={`save-button ${isSaved ? "is-saved" : ""}`} aria-label={`${isSaved ? "Remove from" : "Add to"} favorites: ${p.name}`} aria-pressed={isSaved} onClick={() => toggleFavorite(p.id)}>{isSaved ? "♥" : "♡"}</button></div><div className="product-card-body"><span className="product-kind">Quipaw collection</span><h3>{p.name}</h3><p>{p.description}</p><button className="card-action" type="button" onClick={() => setSelected(p)}>Take a closer look <span aria-hidden="true">↗</span></button></div></article>; })}</div>
-    {visible.length === 0 && <p className="empty-state">{favoritesOnly && favoriteIds.length === 0 ? "No favorites saved yet. Tap a heart on a chew and it will be waiting here." : "No chews found. Try another search."}</p>}
-    <p className="catalog-note"><span>Quick note:</span> Product details and availability will be connected to the shop before launch.</p>
-    {selected && <ProductDialog product={selected} isSaved={favoriteIds.includes(selected.id)} onClose={() => setSelected(null)} onSave={() => toggleFavorite(selected.id)} />}
-  </>;
+  const visible = useMemo(() => catalog.filter(p => (filter === 'all' || p.group === filter) && (!favoritesOnly || favoriteIds.includes(p.id)) && `${p.name} ${p.description} ${t(p.name)} ${t(p.kind)}`.toLocaleLowerCase(language).includes(search.toLocaleLowerCase(language))), [catalog, filter, favoritesOnly, favoriteIds, search, language, t]);
+  return <><div className="filter-row" role="group" aria-label={'Filter products'}>{[['all', 'All the chews'], ['beef', 'Beef'], ['poultry', 'Poultry'], ['lamb', 'Lamb'], ['collagen', 'Collagen']].map(([key, label]) => <button key={key} className={`filter-chip ${filter === key && !favoritesOnly ? 'is-active' : ''}`} type="button" onClick={() => {
+        setFilter(key);
+        setFavoritesOnly(false);
+      }}>{t(label)}</button>)}<button type="button" className={`filter-chip ${favoritesOnly ? 'is-active' : ''}`} aria-pressed={favoritesOnly} onClick={() => setFavoritesOnly(v => !v)}>♡ {t('Favorites')} ({favoriteIds.length})</button><label className="catalog-search"><span aria-hidden="true">⌕</span><input type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('Find a chew')} aria-label={t('Search treats')} /></label></div>
+ {error && <p role="status" className="catalog-note">{'Live availability is temporarily unavailable. You can still explore the collection.'}</p>}
+ <div className="product-grid enhanced-catalog" aria-live="polite">{visible.map(p => <article className="product-card" key={p.id}><div className="product-image-wrap"><Link className="catalog-image-link" href={`/shop/${p.id}`} aria-label={t(p.name)}><img className="catalog-pack" src={p.media[0]?.src} alt={`${t(p.name)} — ${'front of pack'}`} loading="lazy" />{p.media.find(m => m.origin === 'ai') && <img className="catalog-lifestyle" src={p.media.find(m => m.origin === 'ai')!.src} alt="" loading="lazy" />}</Link><span className="product-sticker">{t(p.kind)}</span><button className={`save-button ${favoriteIds.includes(p.id) ? 'is-saved' : ''}`} type="button" aria-label={`${t('Favorites')}: ${t(p.name)}`} aria-pressed={favoriteIds.includes(p.id)} onClick={() => toggleFavorite(p.id)}>{favoriteIds.includes(p.id) ? '♥' : '♡'}</button><span className="catalog-media-count">{p.media.length} {'views'}</span></div><div className="product-card-body"><span className="product-kind">QUIPAW · {p.details ? t(p.details.packSize) : t('Natural chews')}</span><h3><Link href={`/shop/${p.id}`}>{t(p.name)}</Link></h3><p>{p.details?.tagline['en'] || t(p.description)}</p>{p.variants[0] && <strong className="catalog-price">{money(p.variants[0].price, language)}</strong>}<Link className="card-action" href={`/shop/${p.id}`}>{'Meet this chew'} <span aria-hidden="true">↗</span></Link></div></article>)}</div>
+ {!visible.length && <p className="empty-state">{'No chews found. Try another search or save a favourite.'}</p>}</>;
 }

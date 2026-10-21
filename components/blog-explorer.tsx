@@ -1,22 +1,51 @@
-"use client";
+'use client';
 
-import { useMemo, useState } from "react";
-import Link from "next/link";
-import articleData from "@/data/articles.json";
-
-type Article = { id: string; category: string; title: string; image: string; excerpt: string; body: string[] };
-const articles = articleData as Article[];
-
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
+import { useLanguage } from './language-provider';
+import { BlogCard } from './blog-card';
+import { getArticles } from '@/lib/blog';
+import styles from './blog.module.css';
+const savedFilters = 'quipaw-blog-filters';
 export function BlogExplorer() {
-  const [category, setCategory] = useState("All stories");
-  const [search, setSearch] = useState("");
-  const categories = ["All stories", ...new Set(articles.map((article) => article.category))];
-  const visible = useMemo(() => articles.filter((article) => (category === "All stories" || article.category === category) && `${article.title} ${article.category} ${article.excerpt} ${article.body.join(" ")}`.toLowerCase().includes(search.toLowerCase())), [category, search]);
-  return <section className="archive-section section-wrap" id="all-stories">
-    <div className="archive-section-heading"><div><p className="eyebrow">From the Quipaw pack</p><h2>Every story, right here.</h2></div><span className="archive-count" aria-live="polite">{visible.length} {visible.length === 1 ? "story" : "stories"}</span></div>
-    <div className="blog-controls"><div className="blog-filter-row">{categories.map((item) => <button type="button" key={item} className={`filter-chip ${category === item ? "is-active" : ""}`} onClick={() => setCategory(item)}>{item}</button>)}</div><label className="blog-search"><span aria-hidden="true">⌕</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search the journal" aria-label="Search blog stories" /></label></div>
-    <div className="archive-grid">{visible.map((article) => <article className="archive-card" key={article.id}><div className="archive-photo"><img src={`/${article.image}`} alt={article.title} loading="lazy" /></div><div className="archive-card-content"><span className="journal-category">{article.category}</span><h3>{article.title}</h3><p className="archive-card-excerpt">{article.excerpt}</p><details className="story-details"><summary>Read the full story</summary><div className="story-full">{article.body.map((paragraph, index) => <p key={`${article.id}-${index}`}>{paragraph}</p>)}<p className="article-note">Every dog is different. Keep an eye on chew time and choose a size that suits your dog.</p></div></details></div></article>)}</div>
-    {visible.length === 0 && <div className="archive-empty">No stories match that search. Try another topic.</div>}
-    <aside className="archive-callout"><div><h2>Good times happen together.</h2><p>We’re also putting together a Quipaw events calendar. Take a look at the ideas and tell us what you’d love to join.</p></div><Link className="button button-dark" href="/events">Visit the events page <span aria-hidden="true">→</span></Link></aside>
+  const {
+    t,
+    language
+  } = useLanguage();
+  const [category, setCategory] = useState('All stories');
+  const [search, setSearch] = useState('');
+  const [ready, setReady] = useState(false);
+  const articles = getArticles(language);
+  const categories = ['All stories', ...new Set(articles.map(article => article.category))];
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(savedFilters) || 'null');
+      if (saved && typeof saved.search === 'string') setSearch(saved.search);
+      if (saved && getArticles().some(article => article.category === saved.category)) setCategory(saved.category);
+    } catch {}
+    setReady(true);
+  }, []);
+  useEffect(() => {
+    if (ready) try {
+      sessionStorage.setItem(savedFilters, JSON.stringify({
+        category,
+        search
+      }));
+    } catch {}
+  }, [category, search, ready]);
+  const visible = useMemo(() => articles.filter(article => (category === 'All stories' || article.category === category) && `${article.title} ${article.excerpt} ${article.body.join(' ')}`.toLocaleLowerCase('en').includes(search.trim().toLocaleLowerCase('en'))), [articles, category, search, language]);
+  return <section className={`${styles.library} section-wrap`} id="all-stories" aria-labelledby="blog-library-title">
+    <div className={styles.libraryHeading}><div><p className="eyebrow">{'For curious noses & their humans'}</p><h2 id="blog-library-title">{'A little discovery.'}<br /><em>{'A lot of happy.'}</em></h2></div><p>{'Get to know their chews, discover a different texture and find a little inspiration for treat time.'}</p></div>
+    <div className={styles.controls}><div className={styles.filters} role="group" aria-label={'Blog categories'}>{categories.map(item => <button key={item} type="button" aria-pressed={category === item} onClick={() => setCategory(item)}>{t(item)}</button>)}</div><label className={styles.search}><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4 4" /></svg><input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder={'Find a little read…'} aria-label={'Search blog posts'} /></label></div>
+    <div className={styles.resultLine}><span aria-live="polite">{visible.length} {visible.length === 1 ? 'story to explore' : 'stories to explore'}</span>{(category !== 'All stories' || search) && <button onClick={() => {
+        setSearch('');
+        setCategory('All stories');
+      }}>{'Clear filters'} ×</button>}</div>
+    <div className={styles.grid}>{visible.map(article => <BlogCard key={article.id} article={article} />)}</div>
+    {visible.length === 0 && <div className={styles.empty}><span aria-hidden="true">✿</span><h3>{'No stories on this trail.'}</h3><p>{'Try a different word, or take a look at all our stories.'}</p><button className="button button-dark" onClick={() => {
+        setSearch('');
+        setCategory('All stories');
+      }}>{'Show all stories'} →</button></div>}
+    <aside className={styles.communityCallout}><div><p className="eyebrow">{'More good days, together'}</p><h2>{'Take a little paws from reading.'}</h2><p>{'Discover the dog-friendly days we’re dreaming up for the Quipaw community.'}</p></div><Link className="button button-dark" href="/events">{'Explore good times'} <span aria-hidden="true">↗</span></Link><span className={styles.calloutFlower} aria-hidden="true">✿</span></aside>
   </section>;
 }
